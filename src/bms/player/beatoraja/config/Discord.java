@@ -9,12 +9,15 @@ public class Discord {
 
     private static final DiscordRPC lib = DiscordRPC.INSTANCE;
 
-    private static final String APPLICATIONID = ""; // DISCORD APPLICATION ID   (https://discord.com/developers/applications)
+    private static final String APPLICATIONID = "995325656999137430"; // DISCORD APPLICATION ID   (https://discord.com/developers/applications)
 
     public String details;
 
-    public Discord(String details) {
+    public String state;
+
+    public Discord(String details, String state) {
         this.details = details;
+        this.state = state;
     }
 
     public void startup() {
@@ -38,6 +41,9 @@ public class Discord {
     }
 
     public void update() {
+        presence.largeImageKey = "lr2";
+        presence.largeImageText = "LR2oraja";
+        presence.state = state;
         presence.details = details;
         lib.Discord_UpdatePresence(presence);
     }

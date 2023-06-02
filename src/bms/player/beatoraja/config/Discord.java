@@ -8,22 +8,31 @@ public class Discord {
     public static final DiscordRichPresence presence = new DiscordRichPresence();
 
     private static final DiscordRPC lib = DiscordRPC.INSTANCE;
-
-    private static final String APPLICATIONID = "995325656999137430"; // DISCORD APPLICATION ID   (https://discord.com/developers/applications)
-
-    public String details;
+    /*
+    private static final String APPLICATIONID = "876968973126746182"; // DISCORD APPLICATION ID   (https://discord.com/developers/applications)
+    */
+    private static final String APPLICATIONID = "995325656999137430";
 
     public String state;
+    public String details;
+    public long startTimestamp;
 
-    public Discord(String details, String state) {
-        this.details = details;
+    public Discord(String state, String details) {
+        this.startTimestamp = System.currentTimeMillis() / 1000;
         this.state = state;
+        this.details = details;
+    }
+
+    public static Discord playingSong(String fulltitle, String artist, int mode, int level) {
+        String state = mode + "K | LVL." + level;
+        String details = fulltitle + " - " + artist;
+        return new Discord(state, details);
     }
 
     public void startup() {
         String steamId = "";
         DiscordEventHandlers handlers = new DiscordEventHandlers();
-        handlers.ready = (user) -> System.out.println("Ready!");
+        handlers.ready = (user) -> System.out.println("Discord RPC Ready!");
         lib.Discord_Initialize(APPLICATIONID, handlers, true, steamId);
         DiscordRichPresence presence = new DiscordRichPresence();
         lib.Discord_UpdatePresence(presence);
@@ -41,10 +50,10 @@ public class Discord {
     }
 
     public void update() {
-        presence.largeImageKey = "lr2";
-        presence.largeImageText = "LR2oraja";
-        presence.state = state;
         presence.details = details;
+        presence.state = state;
+        presence.startTimestamp = startTimestamp;
+        presence.largeImageKey = "lr2";
         lib.Discord_UpdatePresence(presence);
     }
 

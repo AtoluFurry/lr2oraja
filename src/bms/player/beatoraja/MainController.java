@@ -51,7 +51,7 @@ import bms.tool.mdprocessor.MusicDownloadProcessor;
  */
 public class MainController extends ApplicationAdapter {
 
-	private static final String VERSION = "beatoraja 0.8.4";
+	private static final String VERSION = "beatoraja 0.8.5";
 
 	public static final boolean debug = false;
 
@@ -93,6 +93,10 @@ public class MainController extends ApplicationAdapter {
 	private SongInformationAccessor infodb;
 
 	private IRStatus[] ir;
+
+	private RivalDataAccessor rivals = new RivalDataAccessor();
+
+	private RankingDataCache ircache = new RankingDataCache();
 
 	private SpriteBatch sprite;
 	/**
@@ -185,6 +189,8 @@ public class MainController extends ApplicationAdapter {
 
 		}
 		ir = irarray.toArray(IRStatus.class);
+		
+		rivals.update(this);
 
 		switch(config.getAudioConfig().getDriver()) {
 		case PortAudio:
@@ -215,6 +221,14 @@ public class MainController extends ApplicationAdapter {
 	public PlayDataAccessor getPlayDataAccessor() {
 		return playdata;
 	}
+	
+	public RivalDataAccessor getRivalDataAccessor() {
+		return rivals;
+	}
+	
+	public RankingDataCache getRankingDataCache() {
+		return ircache;
+	}
 
 	public SpriteBatch getSpriteBatch() {
 		return sprite;
@@ -236,7 +250,7 @@ public class MainController extends ApplicationAdapter {
 		MainState newState = null;
 		switch (state) {
 		case MUSICSELECT:
-			discord = new Discord("" ,"MUSIC SELECT");
+			discord = new Discord("SELECT", "");
 			discord.update();
 			if (this.bmsfile != null) {
 				exit();
@@ -255,11 +269,13 @@ public class MainController extends ApplicationAdapter {
 			newState = bmsplayer;
 			break;
 		case RESULT:
-			discord = new Discord("","RESULT");
+			discord = new Discord("RESULT", "");
 			discord.update();
 			newState = result;
 			break;
 		case COURSERESULT:
+			discord = new Discord("RESULT", "");
+			discord.update();
 			newState = gresult;
 			break;
 		case CONFIG:
@@ -278,6 +294,9 @@ public class MainController extends ApplicationAdapter {
 			newState.create();
 			if(newState.getSkin() != null) {
 				newState.getSkin().prepare(newState);
+			}
+			if (current != null) {
+				current.shutdown();
 			}
 			current = newState;
 			starttime = System.nanoTime();
@@ -329,7 +348,7 @@ public class MainController extends ApplicationAdapter {
 		resource = new PlayerResource(audio, config, player);
 		selector = new MusicSelector(this, songUpdated);
 		if(player.getRequestEnable()) {
-		    streamController = new StreamController(selector);
+		    streamController = new StreamController(selector, (player.getRequestNotify() ? messageRenderer : null));
 	        streamController.run();
 		}
 		decide = new MusicDecide(this);
@@ -368,9 +387,11 @@ public class MainController extends ApplicationAdapter {
 		});
 		polling.start();
 
-		if(player.getTarget() >= TargetProperty.getAllTargetProperties().length) {
-			player.setTarget(0);
+		Array<String> targetlist = new Array(player.getTargetlist());
+		for(int i = 0;i < rivals.getRivals().length;i++) {
+			targetlist.add("RIVAL_" + (i + 1));
 		}
+		TargetProperty.setTargets(targetlist.toArray(String.class));
 
 		Pixmap plainPixmap = new Pixmap(2,1, Pixmap.Format.RGBA8888);
 		plainPixmap.drawPixel(0,0, Color.toIntBits(255,0,0,0));
@@ -427,7 +448,7 @@ public class MainController extends ApplicationAdapter {
 		// show fps
 		if (showfps && systemfont != null) {
 			sprite.begin();
-			systemfont.setColor(Color.PURPLE);
+			systemfont.setColor(Color.CYAN);
 			message.setLength(0);
 			systemfont.draw(sprite, message.append("FPS ").append(Gdx.graphics.getFramesPerSecond()), 10,
 					config.getResolution().height - 2);
@@ -453,6 +474,9 @@ public class MainController extends ApplicationAdapter {
 				message.setLength(0);
 				systemfont.draw(sprite, message.append("Banner Pixmap Resource Size ").append(selector.getBannerResource().size()), 10,
 						config.getResolution().height - 170);
+				message.setLength(0);
+				systemfont.draw(sprite, message.append("Current Target ").append(player.getTargetid()), 10,
+						config.getResolution().height - 194);
 			}
 
 			sprite.end();

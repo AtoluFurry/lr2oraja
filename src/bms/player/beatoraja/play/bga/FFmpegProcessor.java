@@ -120,14 +120,14 @@ public class FFmpegProcessor implements MovieProcessor {
 			try {
 				grabber = new FFmpegFrameGrabber(filepath);
 				grabber.start();
-				grabber.setOption("hwaccel", "vaapi");
-    			grabber.setOption("hwaccel_device", "/dev/dri/renderD128");
+				grabber.setOption("hwaccel", "auto");
 				while (grabber.getVideoBitrate() < 10) {
 					final int videoStream = grabber.getVideoStream();
 					try {
 						if (videoStream < 5) {
 							grabber.setVideoStream(videoStream + 1);
 							grabber.restart();
+<<<<<<< Updated upstream
 							grabber.setOption("hwaccel", "vaapi");
 							grabber.setOption("hwaccel_device", "/dev/dri/renderD128");
 						} else {
@@ -135,6 +135,13 @@ public class FFmpegProcessor implements MovieProcessor {
 							grabber.restart();
 							grabber.setOption("hwaccel", "vaapi");
 							grabber.setOption("hwaccel_device", "/dev/dri/renderD128");
+=======
+							grabber.setOption("hwaccel", "auto");
+						} else {
+							grabber.setVideoStream(-1);
+							grabber.restart();
+							grabber.setOption("hwaccel", "auto");
+>>>>>>> Stashed changes
 							break;
 						}
 					} catch (Throwable e) {
@@ -246,8 +253,11 @@ public class FFmpegProcessor implements MovieProcessor {
 		private void restart() throws Exception {
 			pixmap = null;
 			grabber.restart();
+<<<<<<< Updated upstream
 			grabber.setOption("hwaccel", "vaapi");
 			grabber.setOption("hwaccel_device", "/dev/dri/renderD128");
+=======
+>>>>>>> Stashed changes
 			grabber.grabImage();
 			eof = false;
 			offset = grabber.getTimestamp() - time * 1000;

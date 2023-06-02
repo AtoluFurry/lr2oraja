@@ -18,7 +18,6 @@ import bms.player.beatoraja.MainController.IRStatus;
 import bms.player.beatoraja.input.BMSPlayerInputProcessor;
 import bms.player.beatoraja.ir.*;
 import bms.player.beatoraja.play.GrooveGauge;
-import bms.player.beatoraja.select.MusicSelector;
 import bms.player.beatoraja.skin.SkinType;
 import bms.player.beatoraja.skin.property.EventFactory.EventType;
 import bms.player.beatoraja.song.SongData;
@@ -150,6 +149,12 @@ public class MusicResult extends AbstractResult {
 		play(newscore.getClear() != Failed.id && (cscore == null || cscore.getClear() != Failed.id) ? SOUND_CLEAR : SOUND_FAIL);
 	}
 
+	public void shutdown() {
+		stop(SOUND_CLEAR);
+		stop(SOUND_FAIL);
+		stop(SOUND_CLOSE);
+	}
+
 	public void render() {
 		long time = main.getNowTime();
 		main.switchTimer(TIMER_RESULTGRAPH_BEGIN, true);
@@ -166,9 +171,6 @@ public class MusicResult extends AbstractResult {
 
 		if (main.isTimerOn(TIMER_FADEOUT)) {
 			if (main.getNowTime(TIMER_FADEOUT) > getSkin().getFadeout()) {
-				stop(SOUND_CLEAR);
-				stop(SOUND_FAIL);
-				stop(SOUND_CLOSE);
 				main.getAudioProcessor().stop((Note) null);
 
 				final BMSPlayerInputProcessor input = main.getInputProcessor();
@@ -185,6 +187,8 @@ public class MusicResult extends AbstractResult {
 								if (coursegauge.size <= i) {
 									resource.getCourseScoreData().setMinbp(resource.getCourseScoreData().getMinbp()
 											+ resource.getCourseBMSModels()[i].getTotalNotes());
+									resource.getCourseScoreData().setTotalDuration(resource.getCourseScoreData().getTotalDuration()
+											+ 1000000L * resource.getCourseBMSModels()[i].getTotalNotes());
 								}
 							}
 							// 不合格リザルト
@@ -194,6 +198,13 @@ public class MusicResult extends AbstractResult {
 							main.changeState(MainStateType.MUSICSELECT);
 						}
 					} else if (resource.nextCourse()) {
+						RankingData songrank = main.getRankingDataCache().get(resource.getSongdata(), main.getPlayerConfig().getLnmode());
+						if(main.getIRStatus().length > 0 && songrank == null) {
+							songrank = new RankingData();
+							main.getRankingDataCache().put(resource.getSongdata(), main.getPlayerConfig().getLnmode(), songrank);
+						}
+						resource.setRankingData(songrank);
+
 						main.changeState(MainStateType.PLAY);
 					} else {
 						// 合格リザルト
@@ -336,7 +347,7 @@ public class MusicResult extends AbstractResult {
 		getScoreDataProperty().update(newscore);
 		// duration average
 		int count = 0;
-		avgduration = 0;
+		avgduration = newscore.getAvgjudge();
 		timingDistribution.init();
 		final int lanes = resource.getBMSModel().getMode().key;
 		for (TimeLine tl : resource.getBMSModel().getAllTimeLines()) {
@@ -348,13 +359,11 @@ public class MusicResult extends AbstractResult {
 					int time = n.getPlayTime();
 					if (state >= 1) {
 						count++;
-						avgduration += Math.abs(time);
 						timingDistribution.add(time);
 					}
 				}
 			}
 		}
-		avgduration /= count;
 		timingDistribution.statisticValueCalcuate();
 
 		// コースモードの場合はコーススコアに加算・累積する
@@ -391,6 +400,7 @@ public class MusicResult extends AbstractResult {
 			cscore.setEms(cscore.getEms() + newscore.getEms());
 			cscore.setLms(cscore.getLms() + newscore.getLms());
 			cscore.setMinbp(cscore.getMinbp() + newscore.getMinbp());
+			cscore.setTotalDuration(cscore.getTotalDuration() + newscore.getTotalDuration());
 			if (resource.getGauge()[resource.getGrooveGauge().getType()].get(resource.getGauge()[resource.getGrooveGauge().getType()].size - 1) > 0) {
 				if (resource.getAssist() > 0) {
 					if(resource.getAssist() == 1 && cscore.getClear() != ClearType.AssistEasy.id) cscore.setClear(ClearType.LightAssistEasy.id);
@@ -434,7 +444,7 @@ public class MusicResult extends AbstractResult {
 		}
 
 		if (resource.getPlayMode().mode == BMSPlayerMode.Mode.PLAY) {
-			main.getPlayDataAccessor().writeScoreDara(resource.getScoreData(), resource.getBMSModel(),
+			main.getPlayDataAccessor().writeScoreData(resource.getScoreData(), resource.getBMSModel(),
 					resource.getPlayerConfig().getLnmode(), resource.isUpdateScore());
 		} else {
 			Logger.getGlobal().info("プレイモードが" + resource.getPlayMode().mode.name() + "のため、スコア登録はされません");

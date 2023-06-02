@@ -127,21 +127,11 @@ public class FFmpegProcessor implements MovieProcessor {
 						if (videoStream < 5) {
 							grabber.setVideoStream(videoStream + 1);
 							grabber.restart();
-<<<<<<< Updated upstream
-							grabber.setOption("hwaccel", "vaapi");
-							grabber.setOption("hwaccel_device", "/dev/dri/renderD128");
-						} else {
-							grabber.setVideoStream(-1);
-							grabber.restart();
-							grabber.setOption("hwaccel", "vaapi");
-							grabber.setOption("hwaccel_device", "/dev/dri/renderD128");
-=======
 							grabber.setOption("hwaccel", "auto");
 						} else {
 							grabber.setVideoStream(-1);
 							grabber.restart();
 							grabber.setOption("hwaccel", "auto");
->>>>>>> Stashed changes
 							break;
 						}
 					} catch (Throwable e) {
